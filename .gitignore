@@ -1,0 +1,13 @@
+
+# .gitignore
+Mysql/Installation/
+# !Mysql/Installation/db
+Server/w/node_modules
+Client/w/node_modules
+Mysql/Passwords/
+
+# DELETE
+Server/w
+!Server/w/script.sh
+Client/w
+!Client/w/script.sh
