@@ -1,0 +1,3 @@
+CREATE PROCEDURE getExamples(
+  SELECT * FROM EXAMPLE;
+)

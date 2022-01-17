@@ -1,0 +1,113 @@
+version: "3.9"
+
+services:
+  mysqldb:
+    networks:
+      test:
+        aliases: 
+          - mysqlDB
+
+    container_name: mysqldb
+    secrets:
+      - mysql_root_pw
+      - mysql_db_pw
+    build:
+      context: ./Mysql
+      dockerfile: mysql.Dockerfile
+      args:
+        mysqlVersion: ${MYSQL_VERSION}
+    working_dir: /usr/src/TodoApp
+    volumes:
+      - ./Mysql/Installation:/var/lib/mysql
+      - ./Mysql/Database:/docker-entrypoint-initdb.d/
+      - ./Mysql/Scripts:/usr/src/TodoApp/Scripts
+      # - ./Mysql/Database:/usr/src/TodoApp/DatabaÌse
+    ports:
+      - "3306:3306"
+      # - "3306"
+     
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_pw
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_db_pw
+    entrypoint:
+      - bash
+      - /usr/src/TodoApp/Scripts/initDB.sh
+    command: --default-authentication-plugin=mysql_native_password
+
+  react_client:
+    networks:
+      test:
+        aliases:
+          - ReactApp
+
+    container_name: react_client
+    restart: always
+
+    build:
+      target: $MODE_REACT_CLIENT
+      context: ./Client
+      dockerfile: react.Dockerfile
+      args:
+        node_version: ${NODE_VERSION}
+    volumes:
+      - ./Client/w:/var/app/client
+      - node_modules_cli_E:/var/app/client/node_modules
+      - ./Server/w:/var/app/server
+      
+    working_dir: /var/app/client
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      REACT_APP_FOR: dEVELOP
+
+    ports:
+      - 3000:3000
+      - 9229:9229 # vscode debug 
+    
+  api_rest_server:
+    networks:
+      test:
+        aliases:
+          - api_server
+    restart: always
+    container_name: api_rest_server
+    secrets:
+        - mysql_db_pw
+    build:
+      target: $MODE_NODE_SERVER
+      context: ./Server
+      dockerfile: api_server.Dockerfile
+      args:
+        node_version: ${NODE_VERSION}
+    volumes:
+      - ./Server/w:/var/app/server
+      - node_modules_api_E:/var/app/server/node_modules
+      - ./Mysql/Database:/var/app/db
+
+    working_dir: /var/app/server
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      REACT_APP_FOR: dEVELOP
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_DB: ${MYSQL_DATABASE}
+      MYSQL_PW: /run/secrets/mysql_db_pw
+    ports:
+      - 5000:5000
+      - 9228:9229 # vscode debug
+  
+secrets:
+  mysql_root_pw:
+    file: ./Mysql/Passwords/${MYSQL_PW_ROOT_FILE}
+  mysql_db_pw:
+    file: ./Mysql/Passwords/${MYSQL_PW_FILE}
+
+networks:
+  test:
+    name: example
+    driver: bridge
+
+volumes:
+  node_modules_api_E:
+  node_modules_cli_E:
+  # Server:
